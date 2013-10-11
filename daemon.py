@@ -11,11 +11,14 @@ class Daemon(object):
 
 	startmsg = "started with pid %s"
 	
-	def __init__(self, pidfile, stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
-			self.stdin = stdin
-			self.stdout = stdout
-			self.stderr = stderr
-			self.pidfile = pidfile
+    def __init__(self, pidfile, stdin='/dev/null', stdout='/dev/null', stderr='/dev/null',name='daemon'):
+        self.stdin = stdin
+        self.stdout = stdout
+        self.stderr = stderr
+        self.pidfile = pidfile
+        self.name = name
+        
+        self.parse_args()
 
 	def daemonize(self):
 		"""
@@ -64,10 +67,7 @@ class Daemon(object):
 		os.dup2(si.fileno(), sys.stdin.fileno())
 		os.dup2(so.fileno(), sys.stdout.fileno())
 		os.dup2(se.fileno(), sys.stderr.fileno())
-			
-		
-		
-
+	
 	def delpid(self):
 		os.remove(self.pidfile)
 
@@ -129,6 +129,48 @@ class Daemon(object):
 		"""
 		self.stop()
 		self.start()
+
+	def status(self):
+        """
+        Check daemon status
+        """
+        try:
+            pf = file(self.pidfile,'r')
+            pid = int(pf.read().strip())
+            pf.close()
+        except IOError:
+            pid = None
+        except SystemExit:
+            pid = None
+
+        if pid:
+            print '%s (pid %s) is running...' % (self.name, pid)
+        else:
+            print '%s is stopped' % self.name
+
+    def parse_args(self):
+        if len(sys.argv) == 2:
+            if 'start' == sys.argv[1]:
+                try:
+                    self.start()
+                except:
+                    pass
+    
+            elif 'stop' == sys.argv[1]:
+                self.stop()
+    
+            elif 'restart' == sys.argv[1]:
+                self.restart()
+    
+            elif 'status' == sys.argv[1]:
+                self.status()
+    
+            else:
+                print "Unknown command"
+                sys.exit(2)
+                sys.exit(0)
+        else:
+            print "usage: %s start|stop|restart|status" % sys.argv[0]
 
 	def run(self):
 		"""
